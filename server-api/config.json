@@ -1,0 +1,14 @@
+{
+  "DatabaseMgoURL": "127.0.0.1:27017",
+  "DatabaseMgoDatabaseName": "temp-chat-tool",
+
+  "RouterHost" : ":8001",
+  "RouterURL" : "http://localhost:8001",
+
+  "SystemKey" : "1234-1234-1234-1234-1234",
+
+  "DistributionServiceIP" : "127.0.0.1",
+  "DistributionServicePort" : "8001",
+  "DistributionServiceAppMark" : "service-api",
+  "DistributionServiceSequence" : "1"
+}
