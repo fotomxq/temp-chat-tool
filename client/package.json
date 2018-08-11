@@ -1,0 +1,12 @@
+{
+    "name": "temp-chat-tool",
+    "version": "0.0.1",
+    "main": "./app/main.js",
+    "scripts": {
+        "start": "./node_modules/.bin/electron ./app",
+        "packager": "electron-packager ./app gopin --all --out ./build --electron-version 2.0.4 --overwrite --icon=./app/logo.ico"
+    },
+    "dependencies": {
+        "electron": "^2.0.7"
+    }
+}

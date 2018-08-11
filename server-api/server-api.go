@@ -2,25 +2,33 @@ package main
 
 import (
 	"fmt"
-	"github.com/fotomxq/gobase/app"
-	"github.com/fotomxq/gobase/file"
-	"github.com/fotomxq/gobase/ipaddr"
-	"github.com/fotomxq/gobase/log"
-	"github.com/fotomxq/gobase/pedometer"
 	"io"
 	"os"
 	"time"
 
+	"github.com/fotomxq/gobase/file"
+	"github.com/fotomxq/gobase/ipaddr"
+	"github.com/fotomxq/gobase/log"
+	"github.com/fotomxq/gobase/pedometer"
+
+	"net/http"
+
+	"github.com/fotomxq/gobase/gin_session"
+	"github.com/fotomxq/temp-chat-tool/app"
 	"github.com/fotomxq/temp-chat-tool/app/serverbase"
 	"github.com/gin-gonic/gin"
-	"net/http"
+	"github.com/pkg/errors"
+)
+
+var (
+	AppMark string
 )
 
 //启动主体框架
 func main() {
 	err := Run()
 	if err != nil {
-		log.SendError("0.0.0.0", "", app.AppMark+".main()", err)
+		log.SendError("0.0.0.0", "", AppMark+".main()", err)
 		fmt.Println(err.Error())
 		return
 	}
@@ -29,16 +37,6 @@ func main() {
 //初始化主体进程
 //return error
 func Run() error {
-	//设置基本参数
-	var err error
-
-	//初始化底层应用结构
-	// 加载配置文件
-	err = app.RunLoadConfig()
-	if err != nil {
-		return err
-	}
-
 	//启动各类子模块
 	//启动ipaddr
 	ipaddr.Run()
@@ -52,13 +50,13 @@ func Run() error {
 	//注册路由
 	router := gin.Default()
 	// 注册通用中间件
-	routers := router.Use(nil)
+	routers := router.Use(ModGlobMiddleWare())
 	// 注册核心路由部分
 	CoreURL(routers)
 	// 注册app url
 	AppURL(routers)
 	//启动服务器
-	router.Run(app.SystemConfig.RouterHost)
+	router.Run(":9001")
 
 	return nil
 }
@@ -71,7 +69,7 @@ func RunAuto() {
 	logDir := "." + file.Sep + "log"
 	err := file.CreateFolder(logDir)
 	if err != nil {
-		log.SendError("0.0.0.0", "", app.AppMark+".main()", err)
+		log.SendError("0.0.0.0", "", AppMark+".main()", err)
 		fmt.Println(err.Error())
 	}
 	//创建自动程序
@@ -81,7 +79,7 @@ func RunAuto() {
 		logSrc := logDir + file.Sep + "server-" + time.Now().Format("2006010215.log")
 		f, err := os.Create(logSrc)
 		if err != nil {
-			log.SendError("0.0.0.0", "", app.AppMark+".main()", err)
+			log.SendError("0.0.0.0", "", AppMark+".main()", err)
 			fmt.Println(err.Error())
 		}
 		gin.DefaultWriter = io.MultiWriter(f)
@@ -93,6 +91,43 @@ func RunAuto() {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //基础路由处理
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//中间件
+func ModGlobMiddleWare() gin.HandlerFunc {
+	//为了确保线程独立
+	return func(c *gin.Context) {
+		//初始化反馈头
+		res := serverbase.ReportAction{}
+		c.Set("from", "ModGlobMiddleWare")
+		//允许跨域
+		origin := c.Request.Header.Get("Origin")
+		c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
+		//构建cookie
+		cookie, err := gin_session.GetMark(c)
+		//如果不存在cookie
+		if err != nil {
+			c.Set("err", err)
+			ModLogError(c)
+			res.Message = "无法建立cookie。"
+			c.JSON(http.StatusOK, res)
+			c.Abort()
+			return
+		}
+		if cookie == "" {
+			c.Set("err", errors.New("cannot set cookie."))
+			ModLogError(c)
+			res.Message = "无法建立cookie。"
+			c.JSON(http.StatusOK, res)
+			c.Abort()
+			return
+		}
+		//设置上下文cookie
+		c.Set("cookie", cookie)
+		//返回
+		c.Next()
+		return
+	}
+}
 
 //核心处理路由部分
 func CoreURL(router gin.IRoutes) {
@@ -144,5 +179,73 @@ func ReportError(message string, c *gin.Context) {
 
 //app url
 func AppURL(router gin.IRoutes) {
+	//登陆用户
+	router.POST("/login", func(c *gin.Context) {
+		niceName := c.PostForm("nice_name")
+		token, err := App.Login(c, niceName)
+		if err != nil {
+			ReportError("登陆失败.", c)
+			return
+		}
+		//返回token
+		res := serverbase.ReportAction{}
+		res.Login = true
+		res.Data = token
+		c.JSON(http.StatusOK, res)
+	})
+	//获取用户列表
+	router.POST("/user/list", func(c *gin.Context) {
+		_, b := AppCheckLogin(c)
+		if b == false {
+			return
+		}
+		res := serverbase.ReportAction{}
+		res.Login = true
+		res.Data = App.GetUserList()
+		c.JSON(http.StatusOK, res)
+	})
+	//获取消息列队
+	router.POST("/message/get", func(c *gin.Context) {
+		token, b := AppCheckLogin(c)
+		if b == false {
+			return
+		}
+		data := map[string]interface{}{}
+		res := serverbase.ReportAction{}
+		res.Login = true
+		//发送者信息
+		data["send"] = App.GetMessageListBySend(token)
+		data["post"] = App.GetMessageListByPost(token)
+		res.Data = data
+		c.JSON(http.StatusOK, res)
+	})
+	//发送一个消息
+	router.POST("/message/send", func(c *gin.Context) {
+		token, b := AppCheckLogin(c)
+		if b == false {
+			return
+		}
+		postToken := c.PostForm("post_token")
+		message := c.PostForm("message")
+		err := App.SendMessage(token, postToken, message)
+		if err != nil {
+			ReportError("发送失败.", c)
+			return
+		}
+		res := serverbase.ReportAction{}
+		res.Login = true
 
+	})
+}
+
+//检查登陆模块
+func AppCheckLogin(c *gin.Context) (string, bool) {
+	//检查token是否在线，否则返回失败
+	token := c.MustGet("cookie").(string)
+	err := App.CheckLogin(token)
+	if err != nil {
+		ReportError("没有登陆.", c)
+		return "", false
+	}
+	return token, true
 }
