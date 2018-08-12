@@ -1,0 +1,102 @@
+/* 验证码修正 */
+.verification {
+  cursor: pointer;
+  max-width: 155px;
+  max-height: 40px;
+}
+/* 全局通用组件 */
+.size-100 {
+  width: 100%;
+}
+.ch-size-100 input,.ch-size-100 button,.ch-size-100 img{
+  width: 100%;
+}
+.float-right {
+ float: right !important;
+}
+.mdi{
+  speak: none;
+  font-style: normal;
+  font-weight: 400;
+  font-variant: normal;
+  text-transform: none;
+  line-height: 1;
+  vertical-align: baseline;
+  display: inline-block;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+/* 全局过度效果 */
+.component-fade-enter-active, .component-fade-leave-active {
+  transition: opacity .3s ease;
+}
+.component-fade-enter, .component-fade-leave-to{
+  opacity: 0;
+}
+/* 全尺寸 */
+.max-size{
+  width:100%;
+  height:100%;
+}
+/* 全局效果 */
+#app{
+  width:100%;
+  height:100%;
+}
+/* 顶部 */
+.header{
+  position: fixed;
+  top: 0;
+  right: 0;
+  left: 0;
+  margin-bottom: 0;
+  padding: 0;
+  background-color: #FFFFFF;
+  border-bottom: 1px solid #e6e5e5;
+  z-index: 1030;
+}
+.header a{
+  color: #000000;
+}
+.header .header-container{
+  position: fixed;
+  width: 100%;
+}
+.header .header-right{
+  position: fixed;
+  padding-right: 20px;
+  width: calc(100% - 230px);
+  left: 230px;
+  font-size: 1.462rem;
+  line-height: 60px;
+}
+.header .header-title{
+  float: left;
+  -ms-flex: 1 1 auto;
+  flex: 1 1 auto;
+  padding: 0 20px;
+}
+.header .logo{
+  position: fixed;
+  top: 15px;
+  left: 15px;
+  width: 230px;
+}
+/* 菜单部分 */
+.menu{
+  background-color: #f5f5f5;
+}
+.el-menu [class^=mdi] {
+  vertical-align: middle;
+  margin-right: 5px;
+  width: 24px;
+  text-align: center;
+  font-size: 18px;
+}
+/* 主体内容 */
+.el-main .el-row{
+  margin-bottom: 20px;
+}
+.el-main .el-row:last-child{
+  margin-bottom: 0;
+}

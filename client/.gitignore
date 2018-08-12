@@ -1,6 +1,14 @@
-# Created by .ignore support plugin (hsz.mobi)
-.idea
-.vscode
-.vs
+.DS_Store
+node_modules/
+dist/
+npm-debug.log
+yarn-error.log
 
-node_modules
+# Editor directories and files
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+.idea/
+.vs/

@@ -102,6 +102,7 @@ func ModGlobMiddleWare() gin.HandlerFunc {
 		//允许跨域
 		origin := c.Request.Header.Get("Origin")
 		c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
+		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
 		//构建cookie
 		cookie, err := gin_session.GetMark(c)
 		//如果不存在cookie
@@ -180,17 +181,20 @@ func ReportError(message string, c *gin.Context) {
 //app url
 func AppURL(router gin.IRoutes) {
 	//登陆用户
-	router.POST("/login", func(c *gin.Context) {
-		niceName := c.PostForm("nice_name")
-		token, err := App.Login(c, niceName)
-		if err != nil {
-			ReportError("登陆失败.", c)
+	router.POST("/login", RouterLogin)
+	//检查用户登陆状态
+	router.POST("/user/logged-on", func(c *gin.Context) {
+		//初始化
+		var b bool
+		res := ReportCoreUserInfo{}
+		//获取参数
+		res.Cookie, b = AppCheckLogin(c)
+		if b == false {
 			return
 		}
-		//返回token
-		res := serverbase.ReportAction{}
+		//反馈数据
 		res.Login = true
-		res.Data = token
+		res.Status = true
 		c.JSON(http.StatusOK, res)
 	})
 	//获取用户列表
@@ -201,22 +205,21 @@ func AppURL(router gin.IRoutes) {
 		}
 		res := serverbase.ReportAction{}
 		res.Login = true
+		res.Status = true
 		res.Data = App.GetUserList()
 		c.JSON(http.StatusOK, res)
 	})
 	//获取消息列队
 	router.POST("/message/get", func(c *gin.Context) {
-		token, b := AppCheckLogin(c)
+		_, b := AppCheckLogin(c)
 		if b == false {
 			return
 		}
-		data := map[string]interface{}{}
+		postToken := c.PostForm("post_token")
 		res := serverbase.ReportAction{}
 		res.Login = true
-		//发送者信息
-		data["send"] = App.GetMessageListBySend(token)
-		data["post"] = App.GetMessageListByPost(token)
-		res.Data = data
+		res.Status = true
+		res.Data = App.GetMessageList(c, postToken)
 		c.JSON(http.StatusOK, res)
 	})
 	//发送一个消息
@@ -234,8 +237,41 @@ func AppURL(router gin.IRoutes) {
 		}
 		res := serverbase.ReportAction{}
 		res.Login = true
-
+		res.Status = true
+		c.JSON(http.StatusOK, res)
 	})
+}
+
+//登陆
+func RouterLogin(c *gin.Context) {
+	niceName := c.PostForm("nice_name")
+	token, err := App.Login(c, niceName)
+	if err != nil {
+		ReportError("登陆失败.", c)
+		return
+	}
+	//返回token
+	res := serverbase.ReportAction{}
+	res.Login = true
+	res.Status = true
+	res.Data = token
+	c.JSON(http.StatusOK, res)
+}
+
+//反馈信息组
+type ReportCoreUserInfo struct {
+	//是否登陆
+	Login bool `json:"login"`
+	//状态值
+	Status bool `json:"status"`
+	//消息 如果发生错误，则为错误消息
+	Message string `json:"message"`
+	//是否为缓冲数据
+	Cache bool `json:"cache"`
+	//数据摘要
+	SHA1 string `json:"sha1"`
+	//cookie值
+	Cookie string `json:"cookie"`
 }
 
 //检查登陆模块

@@ -38,9 +38,13 @@ server-api          :9001   API服务
 
 ## 维护方法
 
-1、关闭本程序killall ~linux64
+1、关闭本程序killall server-api_linux64
 
-2、重新启动程序 nohup /var/temp-chat-tool/server-service_linux64 &
+2、cd /var/temp-chat-tool/
+
+3、chmod 777 -R /var/temp-chat-tool/
+
+2、重新启动程序 nohup ./server-api_linux64 &
 
 ## 打包本地应用
 
