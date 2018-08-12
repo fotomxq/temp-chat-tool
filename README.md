@@ -40,6 +40,12 @@ server-api          :9001   API服务
 
 1、下载本项目后编译即可，不依赖任何数据库。
 
+2、本项目依赖:
+
+    github.com/fotomxq/gobase
+
+    github.com/gin-gonic/gin
+
 ## 服务端维护方法
 
 1、关闭本程序killall server-api_linux64
